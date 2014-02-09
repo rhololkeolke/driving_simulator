@@ -1,0 +1,6 @@
+[submodule "schematics/Adafruit-Eagle-Library"]
+	path = schematics/Adafruit-Eagle-Library
+	url = git@github.com:adafruit/Adafruit-Eagle-Library.git
+[submodule "schematics/SparkFun-Eagle-Libraries"]
+	path = schematics/SparkFun-Eagle-Libraries
+	url = git@github.com:sparkfun/SparkFun-Eagle-Libraries.git
