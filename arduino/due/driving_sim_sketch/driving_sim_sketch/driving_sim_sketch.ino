@@ -76,17 +76,21 @@ void activateEstop() {
   } while(estop_active); 
 }
 
-int getGear(int default_state) {
+int getGear(int last_state) {
    if(digitalRead(DRIVE2_PIN))
      return DRIVE2_GEAR;
    else if(digitalRead(DRIVE_PIN))
      return DRIVE_GEAR;
    else if(digitalRead(NEUTRAL_PIN))
      return NEUTRAL_GEAR;
-   else if(digitalRead(REVERSE_PIN))
-     return REVERSE_GEAR;
    else if(digitalRead(PARK_PIN))
      return PARK_GEAR;
+   else if(digitalRead(REVERSE_PIN))
+   {
+     if(last_state == NEUTRAL_GEAR || last_state == PARK_GEAR)
+       return REVERSE_GEAR;
+     return last_state;
+   }
    
-   return default_state;
+   return last_state;
 }
