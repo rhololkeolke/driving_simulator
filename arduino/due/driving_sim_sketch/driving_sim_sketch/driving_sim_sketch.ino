@@ -35,12 +35,8 @@ float brake = 0;
 
 struct Calibration cal;
 
-
-int a_lastVal = 0;
-int b_lastVal = 0;
-int a_ticks = 0;
-int b_ticks = 0;
-
+volatile bool encoder_b_state;
+volatile long encoder_ticks = 0;
 
 void setup() {
   // set calibration values
@@ -75,6 +71,7 @@ void setup() {
   // Enocder setup
   pinMode(ENCODER_A, INPUT);
   pinMode(ENCODER_B, INPUT);
+  attachInterrupt(ENCODER_A, handleEncoderChange, RISING);
 }
 
 void loop() {
@@ -112,24 +109,8 @@ void loop() {
   brake = getBrake();
   Serial.println(brake);
   
-  int a_val = digitalRead(ENCODER_A);
-  if(a_val != a_lastVal)
-  {
-    a_lastVal = a_val;
-    a_ticks++;
-  }
-  
-  int b_val = digitalRead(ENCODER_B);
-  if(b_val != b_lastVal)
-  {
-    b_lastVal = b_val;
-    b_ticks++;
-  }
-  
-  Serial.print("a_ticks: ");
-  Serial.println(a_ticks);
-  Serial.print("b_ticks: ");
-  Serial.println(b_ticks);
+  Serial.print("Encoder ticks: ");
+  Serial.println(encoder_ticks);
   
   delay(500);
 }
@@ -170,4 +151,14 @@ float getGas() {
 float getBrake() {
   float val = (analogRead(BRAKE_PIN) - (float)cal.brake_min)/((float)(cal.brake_max - cal.brake_min));
    return max(min(val, 1), 0);
+}
+
+void handleEncoderChange() {
+    encoder_b_state = digitalRead(ENCODER_B);
+    // and adjust counter + if A leads B
+    #ifdef LeftEncoderIsReversed
+      encoder_ticks -= encoder_b_state ? -1 : +1;
+    #else
+      encoder_ticks += encoder_b_state ? -1 : +1;
+    #endif
 }
