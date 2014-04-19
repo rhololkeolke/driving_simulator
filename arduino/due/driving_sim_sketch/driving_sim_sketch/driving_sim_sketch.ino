@@ -24,6 +24,9 @@ struct Calibration {
 #define GAS_PIN 0
 #define BRAKE_PIN 1
 
+#define ENCODER_A 52
+#define ENCODER_B 50
+
 bool keyswitch_on = false;
 int gearshift_state = UNKNOWN_GEAR;
 
@@ -31,6 +34,13 @@ float gas = 0;
 float brake = 0;
 
 struct Calibration cal;
+
+
+int a_lastVal = 0;
+int b_lastVal = 0;
+int a_ticks = 0;
+int b_ticks = 0;
+
 
 void setup() {
   // set calibration values
@@ -61,12 +71,17 @@ void setup() {
   // gas and brake setup
   gas = getGas();
   brake = getBrake();
+  
+  // Enocder setup
+  pinMode(ENCODER_A, INPUT);
+  pinMode(ENCODER_B, INPUT);
 }
 
 void loop() {
   Serial.print("Keyswitch: ");
   keyswitch_on = digitalRead(KEYSWITCH_PIN);
   Serial.println(keyswitch_on);
+  
   Serial.print("Gear: ");
   gearshift_state = getGear(gearshift_state);
   switch(gearshift_state) {
@@ -89,12 +104,33 @@ void loop() {
       Serial.println("Drive 2");
       break;
   }
+  
   Serial.print("Gas: ");
   gas = getGas();
   Serial.println(gas);
   Serial.print("Brake: ");
   brake = getBrake();
   Serial.println(brake);
+  
+  int a_val = digitalRead(ENCODER_A);
+  if(a_val != a_lastVal)
+  {
+    a_lastVal = a_val;
+    a_ticks++;
+  }
+  
+  int b_val = digitalRead(ENCODER_B);
+  if(b_val != b_lastVal)
+  {
+    b_lastVal = b_val;
+    b_ticks++;
+  }
+  
+  Serial.print("a_ticks: ");
+  Serial.println(a_ticks);
+  Serial.print("b_ticks: ");
+  Serial.println(b_ticks);
+  
   delay(500);
 }
 
