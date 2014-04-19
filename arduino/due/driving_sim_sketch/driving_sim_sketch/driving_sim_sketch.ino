@@ -1,3 +1,10 @@
+struct Calibration {
+  int brake_min;
+  int brake_max;
+  int gas_min;
+  int gas_max;
+};
+
 #define ESTOP_PIN 22
 #define KEYSWITCH_PIN 42
 
@@ -23,7 +30,15 @@ int gearshift_state = UNKNOWN_GEAR;
 float gas = 0;
 float brake = 0;
 
+struct Calibration cal;
+
 void setup() {
+  // set calibration values
+  cal.brake_min = 177;
+  cal.brake_max = 960;
+  cal.gas_min = 417;
+  cal.gas_max = 764;
+  
   Serial.begin(9600);
   
   // estop setup
@@ -44,8 +59,8 @@ void setup() {
   gearshift_state = getGear(gearshift_state);
   
   // gas and brake setup
-  gas = analogRead(GAS_PIN);
-  brake = analogRead(BRAKE_PIN);
+  gas = getGas();
+  brake = getBrake();
 }
 
 void loop() {
@@ -75,10 +90,10 @@ void loop() {
       break;
   }
   Serial.print("Gas: ");
-  gas = analogRead(GAS_PIN);
+  gas = getGas();
   Serial.println(gas);
   Serial.print("Brake: ");
-  brake = analogRead(BRAKE_PIN);
+  brake = getBrake();
   Serial.println(brake);
   delay(500);
 }
@@ -109,4 +124,14 @@ int getGear(int last_state) {
    }
    
    return last_state;
+}
+
+float getGas() {
+   float val = (float)(analogRead(GAS_PIN) - (float)cal.gas_min)/((float)(cal.gas_max - cal.gas_min)); 
+   return max(min(val, 1), 0);
+}
+
+float getBrake() {
+  float val = (analogRead(BRAKE_PIN) - (float)cal.brake_min)/((float)(cal.brake_max - cal.brake_min));
+   return max(min(val, 1), 0);
 }
