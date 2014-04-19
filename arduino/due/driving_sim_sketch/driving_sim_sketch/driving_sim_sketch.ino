@@ -6,6 +6,8 @@ struct Calibration {
   double rads_per_tick;
 };
 
+#define ENCODER_IS_REVERSED 1
+
 #define ESTOP_PIN 22
 #define KEYSWITCH_PIN 42
 
@@ -112,7 +114,7 @@ void loop() {
   Serial.println(brake);
   
   Serial.print("Encoder ticks: ");
-  Serial.println(encoder_ticks*cal.rads_per_tick);
+  Serial.println((encoder_ticks*cal.rads_per_tick)/(2*PI));
   
   delay(500);
 }
@@ -158,7 +160,7 @@ float getBrake() {
 void handleEncoderChange() {
     encoder_b_state = digitalRead(ENCODER_B);
     // and adjust counter + if A leads B
-    #ifdef LeftEncoderIsReversed
+    #ifdef ENCODER_IS_REVERSED
       encoder_ticks -= encoder_b_state ? -1 : +1;
     #else
       encoder_ticks += encoder_b_state ? -1 : +1;
