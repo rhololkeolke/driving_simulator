@@ -3,6 +3,7 @@ struct Calibration {
   int brake_max;
   int gas_min;
   int gas_max;
+  double rads_per_tick;
 };
 
 #define ESTOP_PIN 22
@@ -44,6 +45,7 @@ void setup() {
   cal.brake_max = 960;
   cal.gas_min = 417;
   cal.gas_max = 764;
+  cal.rads_per_tick = 0.00770942982476;
   
   Serial.begin(9600);
   
@@ -110,7 +112,7 @@ void loop() {
   Serial.println(brake);
   
   Serial.print("Encoder ticks: ");
-  Serial.println(encoder_ticks);
+  Serial.println(encoder_ticks*cal.rads_per_tick);
   
   delay(500);
 }
