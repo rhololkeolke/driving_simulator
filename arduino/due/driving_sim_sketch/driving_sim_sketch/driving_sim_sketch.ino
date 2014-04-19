@@ -14,8 +14,14 @@
 #define PARK_GEAR 0
 #define UNKNOWN_GEAR -1
 
+#define GAS_PIN 0
+#define BRAKE_PIN 1
+
 bool keyswitch_on = false;
 int gearshift_state = UNKNOWN_GEAR;
+
+float gas = 0;
+float brake = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -36,6 +42,10 @@ void setup() {
   pinMode(PARK_PIN, INPUT);
   
   gearshift_state = getGear(gearshift_state);
+  
+  // gas and brake setup
+  gas = analogRead(GAS_PIN);
+  brake = analogRead(BRAKE_PIN);
 }
 
 void loop() {
@@ -64,6 +74,12 @@ void loop() {
       Serial.println("Drive 2");
       break;
   }
+  Serial.print("Gas: ");
+  gas = analogRead(GAS_PIN);
+  Serial.println(gas);
+  Serial.print("Brake: ");
+  brake = analogRead(BRAKE_PIN);
+  Serial.println(brake);
   delay(500);
 }
 
