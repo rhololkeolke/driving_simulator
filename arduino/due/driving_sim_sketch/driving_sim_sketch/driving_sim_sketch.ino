@@ -8,7 +8,7 @@ struct Calibration {
 
 #define ENCODER_IS_REVERSED 1
 
-#define ESTOP_PIN 22
+#define ESTOP_PIN 25
 #define KEYSWITCH_PIN 42
 
 #define DRIVE2_PIN 51
@@ -53,6 +53,7 @@ void setup() {
   
   // estop setup
   pinMode(ESTOP_PIN, INPUT);
+  digitalWrite(ESTOP_PIN, HIGH);
   attachInterrupt(ESTOP_PIN, activateEstop, HIGH);
 
   // keyswitch setup
