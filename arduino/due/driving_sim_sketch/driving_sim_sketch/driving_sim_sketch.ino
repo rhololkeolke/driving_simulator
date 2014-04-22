@@ -1,9 +1,16 @@
+#include <Wire.h>
+
 struct Calibration {
   int brake_min;
   int brake_max;
   int gas_min;
   int gas_max;
   double rads_per_tick;
+};
+
+union PiDouble {
+  byte b[8];
+  double d;
 };
 
 #define ENCODER_IS_REVERSED 1
@@ -30,6 +37,8 @@ struct Calibration {
 #define ENCODER_A 52
 #define ENCODER_B 50
 
+#define SLAVE_ADDRESS 0x04
+
 bool keyswitch_on = false;
 int gearshift_state = UNKNOWN_GEAR;
 
@@ -41,6 +50,11 @@ struct Calibration cal;
 volatile bool encoder_b_state;
 volatile long encoder_ticks = 0;
 
+volatile int received_byte_count = 0;
+volatile PiDouble desired_wheel_angle;
+volatile PiDouble desired_wheel_force;
+volatile PiDouble desired_vibration;
+
 void setup() {
   // set calibration values
   cal.brake_min = 177;
@@ -49,7 +63,11 @@ void setup() {
   cal.gas_max = 764;
   cal.rads_per_tick = 0.00770942982476;
   
-  Serial.begin(9600);
+  desired_wheel_angle.d = 0;
+  desired_wheel_force.d = 0;
+  desired_vibration.d = 0;
+  
+  Serial.begin(115200);
   
   // estop setup
   pinMode(ESTOP_PIN, INPUT);
@@ -77,10 +95,21 @@ void setup() {
   pinMode(ENCODER_A, INPUT);
   pinMode(ENCODER_B, INPUT);
   attachInterrupt(ENCODER_A, handleEncoderChange, RISING);
+  
+  Wire.begin(SLAVE_ADDRESS);
+  
+  Wire.onReceive(receiveData);
 }
 
 void loop() {
-  Serial.print("Keyswitch: ");
+  Serial.print("Wheel angle: ");
+  Serial.println(desired_wheel_angle.d);
+  Serial.print("Wheel force: ");
+  Serial.println(desired_wheel_force.d);
+  Serial.print("vibration: ");
+  Serial.println(desired_vibration.d);
+  delay(500);
+  /*Serial.print("Keyswitch: ");
   keyswitch_on = digitalRead(KEYSWITCH_PIN);
   Serial.println(keyswitch_on);
   
@@ -117,7 +146,7 @@ void loop() {
   Serial.print("Encoder ticks: ");
   Serial.println((encoder_ticks*cal.rads_per_tick)/(2*PI));
   
-  delay(500);
+  delay(500);*/
 }
 
 void activateEstop() {
@@ -126,7 +155,8 @@ void activateEstop() {
     Serial.println("Estop");
     estop_active = digitalRead(ESTOP_PIN);
     delayMicroseconds(500000);
-  } while(estop_active); 
+  } while(estop_active);
+  received_byte_count = 0;
 }
 
 int getGear(int last_state) {
@@ -166,4 +196,34 @@ void handleEncoderChange() {
     #else
       encoder_ticks += encoder_b_state ? -1 : +1;
     #endif
+}
+
+void receiveData(int byteCount) {
+  if(byteCount < 25)
+  {
+    while(Wire.available())
+      Wire.read();
+  }
+  while(Wire.available())
+  {
+    received_byte_count = received_byte_count % 24;
+    if(received_byte_count == 0)
+      Wire.read(); // skip the first value
+      
+    switch(received_byte_count / 8)
+    {
+     case 0:
+      desired_wheel_angle.b[received_byte_count % 8] = Wire.read();
+      break;
+     case 1:
+      desired_wheel_force.b[received_byte_count % 8] = Wire.read();
+      break;
+     case 2:
+      desired_vibration.b[received_byte_count % 8] = Wire.read();
+      break;
+    }
+    
+    received_byte_count++;
+  }
+
 }
