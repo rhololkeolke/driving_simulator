@@ -13,6 +13,12 @@ union PiDouble {
   double d;
 };
 
+#ifdef DEBUG
+#define DEBUG_PRINT(msg) { Serial.print(msg); }
+#else
+#define DEBUG_PRINT(msg) {}
+#endif
+
 #define ENCODER_IS_REVERSED 1
 
 #define ESTOP_PIN 25
@@ -39,21 +45,32 @@ union PiDouble {
 
 #define SLAVE_ADDRESS 0x04
 
-bool keyswitch_on = false;
-int gearshift_state = UNKNOWN_GEAR;
+#define WHEEL_ANGLE_ID 0x00
+#define GAS_POS_ID 0x01
+#define BRAKE_POS_ID 0x02
+#define GEAR_ID 0x03
+#define VIBRATION_ID 0x04
+#define KEY_TURNED_ID 0x05
 
-float gas = 0;
-float brake = 0;
+volatile bool keyswitch_on = false;
+volatile int gearshift_state = UNKNOWN_GEAR;
+
+volatile PiDouble gas;
+volatile PiDouble brake;
 
 struct Calibration cal;
 
 volatile bool encoder_b_state;
 volatile long encoder_ticks = 0;
+volatile PiDouble wheel_angle;
 
 volatile int received_byte_count = 0;
 volatile PiDouble desired_wheel_angle;
 volatile PiDouble desired_wheel_force;
 volatile PiDouble desired_vibration;
+
+volatile int next_data_to_send = WHEEL_ANGLE_ID;
+
 
 void setup() {
   // set calibration values
@@ -66,6 +83,8 @@ void setup() {
   desired_wheel_angle.d = 0;
   desired_wheel_force.d = 0;
   desired_vibration.d = 0;
+  
+  wheel_angle.d = 0;
   
   Serial.begin(115200);
   
@@ -88,8 +107,8 @@ void setup() {
   gearshift_state = getGear(gearshift_state);
   
   // gas and brake setup
-  gas = getGas();
-  brake = getBrake();
+  gas.d = getGas();
+  brake.d = getBrake();
   
   // Enocder setup
   pinMode(ENCODER_A, INPUT);
@@ -99,54 +118,40 @@ void setup() {
   Wire.begin(SLAVE_ADDRESS);
   
   Wire.onReceive(receiveData);
+  Wire.onRequest(sendData);
+
 }
 
 void loop() {
-  Serial.print("Wheel angle: ");
-  Serial.println(desired_wheel_angle.d);
-  Serial.print("Wheel force: ");
-  Serial.println(desired_wheel_force.d);
-  Serial.print("vibration: ");
-  Serial.println(desired_vibration.d);
-  delay(500);
-  /*Serial.print("Keyswitch: ");
   keyswitch_on = digitalRead(KEYSWITCH_PIN);
-  Serial.println(keyswitch_on);
   
-  Serial.print("Gear: ");
   gearshift_state = getGear(gearshift_state);
-  switch(gearshift_state) {
+  /*switch(gearshift_state) {
     case UNKNOWN_GEAR:
-      Serial.println("Unknown");
+      DEBUG_PRINT("Unknown");
       break;
     case PARK_GEAR:
-      Serial.println("Park");
+      DEBUG_PRINT("Park");
       break;
     case REVERSE_GEAR:
-      Serial.println("Reverse");
+      DEBUG_PRINT("Reverse");
       break;
     case NEUTRAL_GEAR:
-      Serial.println("Neutral");
+      DEBUG_PRINT("Neutral");
       break;
     case DRIVE_GEAR:
-      Serial.println("Drive");
+      DEBUG_PRINT("Drive");
       break;
     case DRIVE2_GEAR:
-      Serial.println("Drive 2");
+      DEBUG_PRINT("Drive 2");
       break;
   }
+  DEBUG_PRINT("\n");*/
   
-  Serial.print("Gas: ");
-  gas = getGas();
-  Serial.println(gas);
-  Serial.print("Brake: ");
-  brake = getBrake();
-  Serial.println(brake);
+  gas.d = getGas();
+  brake.d = getBrake();
   
-  Serial.print("Encoder ticks: ");
-  Serial.println((encoder_ticks*cal.rads_per_tick)/(2*PI));
-  
-  delay(500);*/
+  wheel_angle.d = encoder_ticks*cal.rads_per_tick;
 }
 
 void activateEstop() {
@@ -226,4 +231,52 @@ void receiveData(int byteCount) {
     received_byte_count++;
   }
 
+}
+
+void sendData() {
+  static int temp=0;
+  switch(next_data_to_send) {
+  case WHEEL_ANGLE_ID:
+   Wire.write(WHEEL_ANGLE_ID);
+   for(int i=0; i<8; i++)
+   {
+      Wire.write(wheel_angle.b[i] >> 4);
+      Wire.write(wheel_angle.b[i] & 0x0F); 
+   }
+    break;
+  case GAS_POS_ID:
+   Wire.write(GAS_POS_ID);
+   for(int i=0; i<8; i++)
+   {
+      Wire.write(gas.b[i] >> 4);
+      Wire.write(gas.b[i] & 0x0F);
+   }
+  break;
+  case BRAKE_POS_ID:
+   Wire.write(BRAKE_POS_ID);
+   for(int i=0; i<8; i++)
+   {
+      Wire.write(brake.b[i] >> 4);
+      Wire.write(brake.b[i] & 0x0F); 
+   }
+    break; 
+  case GEAR_ID:
+    Wire.write(GEAR_ID);
+    Wire.write(gearshift_state);
+    break;
+  case VIBRATION_ID:
+    Wire.write(VIBRATION_ID);
+    for(int i=0; i<8; i++)
+   {
+      Wire.write(desired_vibration.b[i] >> 4);
+      Wire.write(desired_vibration.b[i] & 0x0F); 
+   }
+    break;
+  case KEY_TURNED_ID:
+    Wire.write(KEY_TURNED_ID);
+    Wire.write(keyswitch_on);
+    break;
+  }
+  next_data_to_send++;
+  next_data_to_send = next_data_to_send % (KEY_TURNED_ID + 1);
 }
