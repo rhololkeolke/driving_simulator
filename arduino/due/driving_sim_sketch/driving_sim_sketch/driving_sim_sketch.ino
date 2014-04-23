@@ -152,6 +152,16 @@ void loop() {
   brake.d = getBrake();
   
   wheel_angle.d = encoder_ticks*cal.rads_per_tick;
+  
+  if(millis() % 1000 == 0)
+  {
+     Serial.print("Wheel angle: ");
+    Serial.println(desired_wheel_angle.d);
+     Serial.print("Wheel force: ");
+      Serial.println(desired_wheel_force.d);
+     Serial.print("vibration: ");
+    Serial.println(desired_vibration.d); 
+  }
 }
 
 void activateEstop() {
