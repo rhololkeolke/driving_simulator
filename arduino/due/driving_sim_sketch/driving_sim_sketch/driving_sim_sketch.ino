@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <SabertoothSimplified.h>
+#include <Math.h>
 
 struct Calibration {
   int brake_min;
@@ -80,6 +81,15 @@ volatile PiDouble desired_vibration;
 volatile int next_data_to_send = WHEEL_ANGLE_ID;
 
 double Kp = 100;
+double predicted_angle = 0;
+double predict_difference = 0;
+double predict_threshold = 0.1;
+double turn_threshold = 0.000001;
+double previous_angle = 0;
+double tick_difference = 0;
+double reset_threshold = 0.001;
+int tick_count = 0;
+bool isTurning = false;
 
 SabertoothSimplified ST;
 
@@ -169,10 +179,90 @@ void loop() {
   gas.d = getGas();
   brake.d = getBrake();
   
+  previous_angle = wheel_angle.d;
   wheel_angle.d = encoder_ticks*cal.rads_per_tick;
+  tick_difference = previous_angle - wheel_angle.d;
   
+  
+ if(tick_difference > 0 && !isTurning)
+ { 
+   if(++tick_count > 2)
+   {
+     if(previous_angle < 0)
+     {
+       predicted_angle = wheel_angle.d - PI;
+     }
+     else
+     {
+       predicted_angle = wheel_angle.d + PI; 
+     }
+     tick_count = 0;
+     isTurning = true;
+     setWheelPower(Kp*(predicted_angle - wheel_angle.d));
+        Serial.print("Wheel Power: ");
+   Serial.println(Kp*(predicted_angle - wheel_angle.d));
+   }
+   else
+   {
+      setWheelPower(0);
+        Serial.print("Wheel Power: ");
+   Serial.println("0"); 
+   }
+ }
+ else if(isTurning)
+ {
+   if(fabs(tick_difference) <= turn_threshold)
+  {
+    setWheelPower(0);
+    isTurning = false;
+    predicted_angle = 0;
+       Serial.print("Wheel Power: ");
+   Serial.println("0");
+  }
+  else if((predict_difference = predicted_angle - wheel_angle.d) < predict_threshold)
+ {
+   if(predict_difference < 0)
+   {
+    predicted_angle -= PI; 
+    setWheelPower(Kp*(predicted_angle - wheel_angle.d));
+        Serial.print("Wheel Power: ");
+   Serial.println(Kp*(predicted_angle - wheel_angle.d));
+   }
+   else
+   {
+      predicted_angle += PI; 
+    setWheelPower(Kp*(predicted_angle - wheel_angle.d));
+        Serial.print("Wheel Power: ");
+   Serial.println(Kp*(predicted_angle - wheel_angle.d));
+   }
+ } 
+  else
+  {
+    setWheelPower(Kp*(predicted_angle - wheel_angle.d));
+     Serial.print("Wheel Power: ");
+   Serial.println(Kp*(predicted_angle - wheel_angle.d));  
+  }
+ }
+ else
+ {
+   setWheelPower(0);
+   if(tick_difference < -reset_threshold)
+   {
+     tick_count = 0;
+   } 
+   Serial.print("Wheel Power: ");
+   Serial.println("0");
+ }
+ 
+ Serial.print("Ticks count: ");
+ Serial.println(tick_count); 
+  //read 4 or 5 ticks in the same direction setting desired to current
+  //set desired angle to pi/12 radians more in the direction of the turn
+  //check to see if wheel is still turning by comparing last two ticks or run some average
+  //if current - averaged < threshold :: set desired angle to current
   setVibration(desired_vibration.d);
-  setWheelPower(Kp*(desired_wheel_angle.d - wheel_angle.d));
+  //setWheelPower(Kp*(desired_wheel_angle.d - wheel_angle.d));
+  
   
   if(millis() % 1000 == 0)
   {
