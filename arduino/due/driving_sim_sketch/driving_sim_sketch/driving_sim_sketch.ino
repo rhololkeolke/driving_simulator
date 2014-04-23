@@ -9,6 +9,8 @@ struct Calibration {
   double rads_per_tick;
   int vibration_min;
   int vibration_max;
+  int wheel_power_min;
+  int wheel_power_max;
 };
 
 union PiDouble {
@@ -77,6 +79,8 @@ volatile PiDouble desired_vibration;
 
 volatile int next_data_to_send = WHEEL_ANGLE_ID;
 
+double Kp = 100;
+
 SabertoothSimplified ST;
 
 void setup() {
@@ -88,6 +92,8 @@ void setup() {
   cal.rads_per_tick = 0.00770942982476;
   cal.vibration_min = 0;
   cal.vibration_max = 60;
+  cal.wheel_power_min = -60;
+  cal.wheel_power_max = 60;
   
   desired_wheel_angle.d = 0;
   desired_wheel_force.d = 0;
@@ -166,11 +172,14 @@ void loop() {
   wheel_angle.d = encoder_ticks*cal.rads_per_tick;
   
   setVibration(desired_vibration.d);
+  setWheelPower(Kp*(desired_wheel_angle.d - wheel_angle.d));
   
   if(millis() % 1000 == 0)
   {
-     Serial.print("Wheel angle: ");
+     Serial.print("Desired Wheel angle: ");
     Serial.println(desired_wheel_angle.d);
+    Serial.print("Measured Wheel angle: ");
+    Serial.println(wheel_angle.d);
      Serial.print("Wheel force: ");
       Serial.println(desired_wheel_force.d);
      Serial.print("vibration: ");
@@ -182,6 +191,18 @@ void setVibration(double magnitude) {
    magnitude = max(0, min(1, magnitude));
    int power = magnitude*(cal.vibration_max - cal.vibration_min) + cal.vibration_min;
    ST.motor(VIBRATION_MOTOR, power);
+}
+
+void setWheelPower(double magnitude) {
+   int power = (int)max(cal.wheel_power_min, min(cal.wheel_power_max, magnitude));
+  /*if(millis() % 100)
+  {
+    Serial.print("magnitude: ");
+    Serial.println(magnitude);
+    Serial.print("power: ");
+    Serial.println(power);
+  }*/
+  ST.motor(WHEEL_MOTOR, power);
 }
 
 void activateEstop() {
