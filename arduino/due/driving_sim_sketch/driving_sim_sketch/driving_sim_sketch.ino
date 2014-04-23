@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include <SabertoothSimplified.h>
 
 struct Calibration {
   int brake_min;
@@ -6,6 +7,8 @@ struct Calibration {
   int gas_min;
   int gas_max;
   double rads_per_tick;
+  int vibration_min;
+  int vibration_max;
 };
 
 union PiDouble {
@@ -52,6 +55,9 @@ union PiDouble {
 #define VIBRATION_ID 0x04
 #define KEY_TURNED_ID 0x05
 
+#define WHEEL_MOTOR 2
+#define VIBRATION_MOTOR 1
+
 volatile bool keyswitch_on = false;
 volatile int gearshift_state = UNKNOWN_GEAR;
 
@@ -71,6 +77,7 @@ volatile PiDouble desired_vibration;
 
 volatile int next_data_to_send = WHEEL_ANGLE_ID;
 
+SabertoothSimplified ST;
 
 void setup() {
   // set calibration values
@@ -79,6 +86,8 @@ void setup() {
   cal.gas_min = 417;
   cal.gas_max = 764;
   cal.rads_per_tick = 0.00770942982476;
+  cal.vibration_min = 0;
+  cal.vibration_max = 60;
   
   desired_wheel_angle.d = 0;
   desired_wheel_force.d = 0;
@@ -86,11 +95,14 @@ void setup() {
   
   wheel_angle.d = 0;
   
-  Serial.begin(115200);
+  SabertoothTXPinSerial.begin(9600);
+  ST.motor(WHEEL_MOTOR, 0);
+  ST.motor(VIBRATION_MOTOR, 0);
+  
+  Serial.begin(9600);
   
   // estop setup
   pinMode(ESTOP_PIN, INPUT);
-  digitalWrite(ESTOP_PIN, HIGH);
   attachInterrupt(ESTOP_PIN, activateEstop, HIGH);
 
   // keyswitch setup
@@ -153,6 +165,8 @@ void loop() {
   
   wheel_angle.d = encoder_ticks*cal.rads_per_tick;
   
+  setVibration(desired_vibration.d);
+  
   if(millis() % 1000 == 0)
   {
      Serial.print("Wheel angle: ");
@@ -162,6 +176,12 @@ void loop() {
      Serial.print("vibration: ");
     Serial.println(desired_vibration.d); 
   }
+}
+
+void setVibration(double magnitude) {
+   magnitude = max(0, min(1, magnitude));
+   int power = magnitude*(cal.vibration_max - cal.vibration_min) + cal.vibration_min;
+   ST.motor(VIBRATION_MOTOR, power);
 }
 
 void activateEstop() {
