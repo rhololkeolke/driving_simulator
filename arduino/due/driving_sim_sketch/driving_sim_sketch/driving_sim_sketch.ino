@@ -85,10 +85,10 @@ SabertoothSimplified ST;
 
 void setup() {
   // set calibration values
-  cal.brake_min = 177;
+  cal.brake_min = 190;
   cal.brake_max = 960;
   cal.gas_min = 417;
-  cal.gas_max = 764;
+  cal.gas_max = 820;
   cal.rads_per_tick = 0.00770942982476;
   cal.vibration_min = 0;
   cal.vibration_max = 60;
@@ -174,15 +174,15 @@ void loop() {
   setVibration(desired_vibration.d);
   setWheelPower(Kp*(desired_wheel_angle.d - wheel_angle.d));
   
-  /*Serial.print("gas: ");
+  Serial.print("gas: ");
   Serial.print(gas.d);
   Serial.print(" brake: ");
-  Serial.println(brake.d);*/
+  Serial.println(brake.d);
   
-  Serial.print("encoder ticks: ");
+  /*Serial.print("encoder ticks: ");
   Serial.print(encoder_ticks);
   Serial.print(" wheel angle: ");
-  Serial.println(wheel_angle.d);
+  Serial.println(wheel_angle.d);*/
   
   /*if(millis() % 1000 == 0)
   {
