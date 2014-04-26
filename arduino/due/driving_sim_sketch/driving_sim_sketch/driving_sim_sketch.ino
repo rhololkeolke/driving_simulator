@@ -35,12 +35,12 @@ union PiDouble {
 #define REVERSE_PIN 45
 #define PARK_PIN 43
 
-#define DRIVE2_GEAR 4
-#define DRIVE_GEAR 3
-#define NEUTRAL_GEAR 2
-#define REVERSE_GEAR 1
-#define PARK_GEAR 0
-#define UNKNOWN_GEAR -1
+#define DRIVE2_GEAR 1
+#define DRIVE_GEAR 1
+#define NEUTRAL_GEAR 0
+#define REVERSE_GEAR -1
+#define PARK_GEAR 2
+#define UNKNOWN_GEAR -2
 
 #define GAS_PIN 0
 #define BRAKE_PIN 1
@@ -61,7 +61,7 @@ union PiDouble {
 #define VIBRATION_MOTOR 1
 
 volatile bool keyswitch_on = false;
-volatile int gearshift_state = UNKNOWN_GEAR;
+volatile int gearshift_state = NEUTRAL_GEAR; //UNKNOWN_GEAR;
 
 volatile PiDouble gas;
 volatile PiDouble brake;
@@ -174,7 +174,17 @@ void loop() {
   setVibration(desired_vibration.d);
   setWheelPower(Kp*(desired_wheel_angle.d - wheel_angle.d));
   
-  if(millis() % 1000 == 0)
+  /*Serial.print("gas: ");
+  Serial.print(gas.d);
+  Serial.print(" brake: ");
+  Serial.println(brake.d);*/
+  
+  Serial.print("encoder ticks: ");
+  Serial.print(encoder_ticks);
+  Serial.print(" wheel angle: ");
+  Serial.println(wheel_angle.d);
+  
+  /*if(millis() % 1000 == 0)
   {
      Serial.print("Desired Wheel angle: ");
     Serial.println(desired_wheel_angle.d);
@@ -184,7 +194,7 @@ void loop() {
       Serial.println(desired_wheel_force.d);
      Serial.print("vibration: ");
     Serial.println(desired_vibration.d); 
-  }
+  }*/
 }
 
 void setVibration(double magnitude) {
