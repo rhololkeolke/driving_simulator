@@ -60,6 +60,9 @@ union PiDouble {
 #define WHEEL_MOTOR 2
 #define VIBRATION_MOTOR 1
 
+#define FSR1_PIN 6
+#define FSR2_PIN 7
+
 volatile bool keyswitch_on = false;
 volatile int gearshift_state = UNKNOWN_GEAR;
 
@@ -80,6 +83,9 @@ volatile PiDouble desired_vibration;
 volatile int next_data_to_send = WHEEL_ANGLE_ID;
 
 double Kp = 100;
+
+int fsr1_raw = 0;
+int fsr2_raw = 0;
 
 SabertoothSimplified ST;
 
@@ -174,17 +180,24 @@ void loop() {
   setVibration(desired_vibration.d);
   setWheelPower(Kp*(desired_wheel_angle.d - wheel_angle.d));
   
-  if(millis() % 1000 == 0)
-  {
-     Serial.print("Desired Wheel angle: ");
+  fsr1_raw = analogRead(FSR1_PIN);
+  fsr2_raw = analogRead(FSR2_PIN);
+  
+  //if(millis() % 100 == 0)
+  //{
+    Serial.print("FSR1: ");
+    Serial.print(fsr1_raw);
+    Serial.print(" FSR2: ");
+    Serial.println(fsr2_raw);
+     /*Serial.print("Desired Wheel angle: ");
     Serial.println(desired_wheel_angle.d);
     Serial.print("Measured Wheel angle: ");
     Serial.println(wheel_angle.d);
      Serial.print("Wheel force: ");
       Serial.println(desired_wheel_force.d);
      Serial.print("vibration: ");
-    Serial.println(desired_vibration.d); 
-  }
+    Serial.println(desired_vibration.d); */
+  //}
 }
 
 void setVibration(double magnitude) {
