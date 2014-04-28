@@ -87,8 +87,8 @@ void setup() {
   // set calibration values
   cal.brake_min = 190;
   cal.brake_max = 960;
-  cal.gas_min = 417;
-  cal.gas_max = 820;
+  cal.gas_min = 450;
+  cal.gas_max = 715;
   cal.rads_per_tick = 0.00770942982476;
   cal.vibration_min = 0;
   cal.vibration_max = 60;
@@ -250,7 +250,7 @@ float getGas() {
 }
 
 float getBrake() {
-  float val = (analogRead(BRAKE_PIN) - (float)cal.brake_min)/((float)(cal.brake_max - cal.brake_min));
+  float val = (float)(analogRead(BRAKE_PIN) - (float)cal.brake_min)/((float)(cal.brake_max - cal.brake_min));
    return max(min(val, 1), 0);
 }
 
