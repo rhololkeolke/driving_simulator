@@ -253,7 +253,7 @@ float getGas() {
 }
 
 float getBrake() {
-  float val = (analogRead(BRAKE_PIN) - (float)cal.brake_min)/((float)(cal.brake_max - cal.brake_min));
+  float val = (float)(analogRead(BRAKE_PIN) - (float)cal.brake_min)/((float)(cal.brake_max - cal.brake_min));
    return max(min(val, 1), 0);
 }
 
