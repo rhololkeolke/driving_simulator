@@ -82,19 +82,22 @@ volatile PiDouble desired_vibration;
 
 volatile int next_data_to_send = WHEEL_ANGLE_ID;
 
-double Kp = 100;
+double Kp = 50;
+double Kf = 0.1;
 
-int fsr1_raw = 0;
-int fsr2_raw = 0;
+double force_threshold = 120;
+
+int fsr1_raw = 0; //right side relative to driver
+int fsr2_raw = 0; //left side relative to driver
 
 SabertoothSimplified ST;
 
 void setup() {
   // set calibration values
-  cal.brake_min = 177;
+  cal.brake_min = 190;
   cal.brake_max = 960;
   cal.gas_min = 417;
-  cal.gas_max = 764;
+  cal.gas_max = 640;
   cal.rads_per_tick = 0.00770942982476;
   cal.vibration_min = 0;
   cal.vibration_max = 60;
@@ -178,7 +181,7 @@ void loop() {
   wheel_angle.d = encoder_ticks*cal.rads_per_tick;
   
   setVibration(desired_vibration.d);
-  setWheelPower(Kp*(desired_wheel_angle.d - wheel_angle.d));
+  //setVibration(20);
   
   fsr1_raw = analogRead(FSR1_PIN);
   fsr2_raw = analogRead(FSR2_PIN);
@@ -190,31 +193,61 @@ void loop() {
     Serial.print(" FSR2: ");
     Serial.println(fsr2_raw);
      /*Serial.print("Desired Wheel angle: ");
-    Serial.println(desired_wheel_angle.d);
+    Serial.println(desired_wheel_angle.d);*/
     Serial.print("Measured Wheel angle: ");
     Serial.println(wheel_angle.d);
+    
+   /* Serial.print("Brake :");
+    Serial.println(brake.d);
+    Serial.print("Gas :");
+    Serial.println(gas.d);
      Serial.print("Wheel force: ");
       Serial.println(desired_wheel_force.d);
      Serial.print("vibration: ");
     Serial.println(desired_vibration.d); */
   //}
+  if(fsr1_raw > force_threshold) //turning right -> assist right
+  {
+    setWheelPower(-Kf * fsr1_raw);
+  }
+  /*else if(fsr2_raw > fsr1_raw) //turning left -> assist left
+  {
+    setWheelPower(Kf * fsr2_raw);
+  }*/
+  else
+  {
+    /*if(wheel_angle.d > 0) //left turn -> go right
+    {
+      setWheelPower(-force_threshold);
+    }
+    else*/ if(wheel_angle.d < 0) //right turn -> go left
+    {
+      setWheelPower(Kp*-wheel_angle.d); 
+    }
+    else
+    {
+      setWheelPower(0); 
+    }
+  }
+  
+  //setWheelPower(Kp*(desired_wheel_angle.d - wheel_angle.d));
 }
 
 void setVibration(double magnitude) {
    magnitude = max(0, min(1, magnitude));
    int power = magnitude*(cal.vibration_max - cal.vibration_min) + cal.vibration_min;
-   ST.motor(VIBRATION_MOTOR, power);
+   ST.motor(VIBRATION_MOTOR, 30);
 }
 
 void setWheelPower(double magnitude) {
    int power = (int)max(cal.wheel_power_min, min(cal.wheel_power_max, magnitude));
-  /*if(millis() % 100)
-  {
+  //if(millis() % 100)
+  //{
     Serial.print("magnitude: ");
     Serial.println(magnitude);
     Serial.print("power: ");
     Serial.println(power);
-  }*/
+  //}*/
   ST.motor(WHEEL_MOTOR, power);
 }
 
