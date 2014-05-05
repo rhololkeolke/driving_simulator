@@ -153,27 +153,6 @@ void loop() {
   keyswitch_on = digitalRead(KEYSWITCH_PIN);
   
   gearshift_state = getGear(gearshift_state);
-  /*switch(gearshift_state) {
-    case UNKNOWN_GEAR:
-      DEBUG_PRINT("Unknown");
-      break;
-    case PARK_GEAR:
-      DEBUG_PRINT("Park");
-      break;
-    case REVERSE_GEAR:
-      DEBUG_PRINT("Reverse");
-      break;
-    case NEUTRAL_GEAR:
-      DEBUG_PRINT("Neutral");
-      break;
-    case DRIVE_GEAR:
-      DEBUG_PRINT("Drive");
-      break;
-    case DRIVE2_GEAR:
-      DEBUG_PRINT("Drive 2");
-      break;
-  }
-  DEBUG_PRINT("\n");*/
   
   gas.d = getGas();
   brake.d = getBrake();
@@ -181,31 +160,10 @@ void loop() {
   wheel_angle.d = encoder_ticks*cal.rads_per_tick;
   
   setVibration(desired_vibration.d);
-  //setVibration(20);
   
   fsr1_raw = analogRead(FSR1_PIN);
   fsr2_raw = analogRead(FSR2_PIN);
-  
-  //if(millis() % 100 == 0)
-  //{
-    Serial.print("FSR1: ");
-    Serial.print(fsr1_raw);
-    Serial.print(" FSR2: ");
-    Serial.println(fsr2_raw);
-     /*Serial.print("Desired Wheel angle: ");
-    Serial.println(desired_wheel_angle.d);*/
-    Serial.print("Measured Wheel angle: ");
-    Serial.println(wheel_angle.d);
-    
-   /* Serial.print("Brake :");
-    Serial.println(brake.d);
-    Serial.print("Gas :");
-    Serial.println(gas.d);
-     Serial.print("Wheel force: ");
-      Serial.println(desired_wheel_force.d);
-     Serial.print("vibration: ");
-    Serial.println(desired_vibration.d); */
-  //}
+
   if(fsr1_raw >= force_threshold || fsr2_raw >= force_threshold) 
   {
     if(fsr1_raw > fsr2_raw) //turning right -> assist right
